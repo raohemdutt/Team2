@@ -48,3 +48,7 @@ futures_dict = {Symbol: add_indicators(df[df['Symbol'] == Symbol]) for Symbol in
 indicators_df = indicators_df.sort_values(by = ['Time','Symbol'], ascending = [False,True]) #our SQL database has the earliest dates on top
 indicators_df.to_csv("indicators_and_data.csv", index=False)
 
+# CSV 1 for Trade Logic
+market_volume = indicators_df[['Time','Symbol','Volume', 'VAS','Sector']]
+market_volume = market_volume.rename(columns = {'Time':'Date','Volume':'MarketVolume'})
+market_volume.to_csv("market_volume.csv", index = False)
