@@ -25,11 +25,12 @@ def add_indicators(df):
     df['DRI'] = df['Close']/df['SMA_20']
     df['VAS'] = df['Volume']/df['Vol_20']
     return df
-
+    
 df = pd.read_csv('ohlcv_1d.csv')
 df = df.rename(columns = {'time': 'Time', 'symbol':'Symbol', 'open':'Open','high':'High','low': 'Low', 'close': 'Close', 'volume': 'Volume'}) #function uses capitalized titles, whereas our database uses lowercase
 
 futures_dict = {Symbol: add_indicators(df[df['Symbol'] == Symbol]) for Symbol in df['Symbol'].unique()} # Applies all the indicators to dataset sequentially for all unique symbols (assets)
+indicators_df = pd.concat(futures_dict.values(), ignore_index=True)
 indicators_df = indicators_df.sort_values(by = ['Time','Symbol'], ascending = [False,True]) #our SQL database has the earliest dates on top
 indicators_df.to_csv("indicators_and_data.csv", index=False)
 
@@ -58,4 +59,4 @@ almost_asset['Date'] = pd.to_datetime(almost_asset['Date']).dt.strftime('%Y-%m-%
 almost_asset['Asset'] = almost_asset['Asset'].str.replace('.c.0', '', regex=False)
 almost_asset = almost_asset.sort_values(by = ['Asset','Date'], ascending= [True, True])
 almost_asset.head(5)
-almost_asset.to_csv('asset_data.csv')
+almost_asset.to_csv('asset_data.csv', index=False)
