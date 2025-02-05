@@ -1,4 +1,4 @@
-Databento Symbol,Tick Size,Contract Size,Intraday Initial Margin,Tick Value
+Ticker,TickSize,ContractSize,MarginRequirement,TickValue
 6B,0.0001,62500.0,2458.95,6.25
 6C,5e-05,100000.0,1708.35,5.0
 6E,5e-05,125000.0,3766.47,6.25

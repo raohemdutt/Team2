@@ -67,5 +67,5 @@ futures = pd.read_csv('metadata2.csv')
 futures = futures.copy()
 futures = futures[['Databento Symbol','Tick Size','Contract Size','Intraday Initial Margin']] # Can change margin to Intraday/Overnight Initial/Maintanence
 futures['Tick Value'] = futures['Tick Size'] * futures['Contract Size']
-futures.rename(columns={'Databento Symbol': 'Ticker', 'Tick Size':'TickSize', 'Contract Size': 'ContractSize', 'Intraday Initial Margin' : 'MarginRequirement', 'Tick Value': 'TickValue'})
+futures = futures.rename(columns={'Databento Symbol': 'Ticker', 'Tick Size':'TickSize', 'Contract Size': 'ContractSize', 'Intraday Initial Margin' : 'MarginRequirement', 'Tick Value': 'TickValue'})
 futures.to_csv('futures_specifications.csv', index = False)
