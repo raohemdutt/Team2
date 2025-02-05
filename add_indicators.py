@@ -26,7 +26,7 @@ def add_indicators(df):
     df['VAS'] = df['Volume']/df['Vol_20']
     return df
 
-def add_metadata(df):
+def add_sector(df):
   symbol_to_sector = {
       "6B.c.0": "FX", "6C.c.0": "FX", "6E.c.0": "FX", "6J.c.0": "FX", "6M.c.0": "FX",
       "6N.c.0": "FX", "6S.c.0": "FX", "CL.c.0": "Energy", "GC.c.0": "Metals", "GF.c.0": "Agriculture",
@@ -39,11 +39,12 @@ def add_metadata(df):
   df["Sector"] = df["Symbol"].map(symbol_to_sector) # just a mapping dictionary to add sectors to each row based on the symbol
   
   return df
+
   
 df = pd.read_csv('ohlcv_1d.csv')
 df = df.rename(columns = {'time': 'Time', 'symbol':'Symbol', 'open':'Open','high':'High','low': 'Low', 'close': 'Close', 'volume': 'Volume'}) #function uses capitalized titles, whereas our database uses lowercase
 
-df = add_metadata(df) # make sure this goes before futures_dict so the symbol is included.
+df = add_sector(df) # make sure this goes before futures_dict so the symbol is included.
 futures_dict = {Symbol: add_indicators(df[df['Symbol'] == Symbol]) for Symbol in df['Symbol'].unique()} # Applies all the indicators to dataset sequentially for all unique symbols (assets)
 indicators_df = indicators_df.sort_values(by = ['Time','Symbol'], ascending = [False,True]) #our SQL database has the earliest dates on top
 indicators_df.to_csv("indicators_and_data.csv", index=False)
