@@ -1,0 +1,31 @@
+Databento Symbol,IB Symbol,Name,Exchange,,Intraday Initial Margin,Intraday Maintenance,Overnight Initial,Overnight Maintenance Margin,Asset Type,Sector,Contract Size,Units,Minimum Price Fluctuation,Tick Size,Settlement Type,Trading Hours (EST),Data Provider,Dataset
+6B,M6B,GBP/USD,CME,,2458.95,2458.95,2458.95,2138.21,Futures,FX,62500, British pounds,$6.25 ,0.0001,Deliverable,Sunday - Friday  6:00 p.m. - 5:00 p.m,Databento,GLOBEX
+6C,CAD,CAD/USD,CME,,1708.35,1708.35,1708.35,1485.52,Futures,FX,100000, Canadian dollars,$5.00 ,0.00005,Deliverable,Sunday - Friday 6:00 p.m. - 5:00 p.m.,Databento,GLOBEX
+6E,M6E,EUR/USD,CME,,3766.47,3766.47,3766.47,3275.19,Futures,FX,125000, Euros,$6.25 ,0.00005,Deliverable,Sunday - Friday 6:00 p.m. - 5:00 p.m.,Databento,GLOBEX
+6J,JPY,JPY/USD,CME,,3595.04,3595.04,3595.04,3126.12,Futures,FX,12500000, Japanese yen,$6.25 ,0.0000005,Deliverable,Sunday - Friday 6:00 p.m. - 5:00 p.m.,Databento,GLOBEX
+6M,MXP,MEX/USD,CME,,1667.73,1667.73,1667.73,1450.2,Futures,FX,500000,Mexican Pesos,$5.00 ,0.00001,Deliverable,Sunday - Friday 6:00 p.m. - 5:00 p.m.,Databento,GLOBEX
+6N,NZD,NZD/USD,CME,,2011.42,2011.42,2011.42,1749.06,Futures,FX,100000,  NZD ,$5.00 ,0.00005 ,Deliverable,Sunday - Friday 6:00 p.m. - 5:00 p.m.,Databento,GLOBEX
+6S,MSF,CHF/USD,CME,,4787.52,4787.52,4787.52,4163.06,Futures,FX,125000,Swiss Francs,$6.25 ,0.00005,Deliverable,Sunday - Friday 6:00 p.m. - 5:00 p.m.,Databento,GLOBEX
+CL,CL,Crude Oil,NYMEX,,16250,16250,16250,13000,Futures,Energy,1000, barrels,10.000000,0.01,Deliverable,Sunday - Friday 6:00 p.m. - 5:00 p.m.,Databento,GLOBEX
+GC,GC,Gold ,COMEX,,17654.62,17654.62,17654.62,15351.85,Futures,Metals,100, troy ounces,$10.00 ,0.01,Deliverable,Sunday - Friday 6:00 p.m. - 5:00 p.m.,Databento,GLOBEX
+GF,GF,Feeder Cattle,CME,,9792.71,9792.71,9792.71,8515.4,Futures,Agriculture,50000,pounds,$10.00 ,0.00025,Deliverable,Monday - Friday: 9:30 a.m. - 2:05 p.m.,Databento,GLOBEX
+HE,HE,Lean Hog ,CME,,4726.2,4726.2,4726.2,4109.74,Futures,Agriculture,40000,pounds,$10.00 ,0.00025,Financially Settled,Monday - Friday: 9:30 a.m. - 2:05 p.m.,Databento,GLOBEX
+HG,HG,Copper ,COMEX,,9270.39,9270.39,9270.39,8061.21,Futures,Metals,25000, pounds,$12.50 ,0.0005 ,Deliverable,Sunday - Friday 6:00 p.m. - 5:00 p.m.,Databento,GLOBEX
+KE,KE,KC Hard Red Winter Wheat ,CBOT,,3671.62,3671.62,3671.62,3192.72,Futures,Agriculture,5000, bushels,$12.50 ,0.0025 ,Deliverable,"Sunday - Friday, 8:00 p.m. - 8:45 a.m, and Monday - Friday, 9:30 a.m. - 2:20 p.m.",Databento,GLOBEX
+LE,LE,Live Cattle ,CME,,4567.68,4567.68,4567.68,3971.9,Futures,Agriculture,40000, pounds,$10.00 ,0.00025,Deliverable,Monday - Friday: 9:30 a.m. - 2:05 p.m.,Databento,GLOBEX
+MES,MES,Micro E-mini S&P500 Index,CME,,1172.94,1066.31,1675.63,1523.3,Futures,Equities,5,S&P 500 Index,$1.25 ,0.25,Financially Settled,Sunday - Friday 6:00 p.m. - 5:00 p.m.,Databento,GLOBEX
+MNQ,MNQ,Micro E-mini Nasdaq - 100 Index ,CME,,2122.78,1929.74,3032.54,2756.77,Futures,Equities,2,Nasdaq-100 Index,$0.50 ,0.25,Financially Settled,Sunday - Friday 6:00 p.m. - 5:00 p.m.,Databento,GLOBEX
+MYM,MYM,Micro E-mini Dow Jones Industrial Average Index ,CME,,899.527,782.1975,1285.04,1117.425,Futures,Equities,0.5,DJIA Index,$0.50 ,1,Financially Settled,Sunday - Friday 6:00 p.m. - 5:00 p.m.,Databento,GLOBEX
+PL,PL,Platinum,NYMEX,,5426.83,5426.83,5426.83,4718.98,Futures,Metals,50, troy ounces,$5.00 ,0.1,Deliverable,Sunday - Friday 6:00 p.m. - 5:00 p.m.,Databento,GLOBEX
+RB,RB,RBOB Gasoline ,NYMEX,,22050,22050,22050,17640,Futures,Energy,42000,gallons,$4.20 ,0.0001,Deliverable,Sunday - Friday 6:00 p.m. - 5:00 p.m.,Databento,GLOBEX
+RTY,RTY,E-mini Russell 2000 Index ,CME,,6511.66,5662.31,9302.37,8089.02,Futures,Equities,50,Russell 2000 Index,$5.00 ,0.1,Financially Settled,Sunday - Friday 6:00 p.m. - 5:00 p.m.,Databento,GLOBEX
+SI,SI,Silver ,COMEX,,23734.57,23734.57,23734.57,20638.75,Futures,Metals,5000,troy ounces,$25.00 ,0.005,Deliverable,Sunday - Friday 6:00 p.m. - 5:00 p.m.,Databento,GLOBEX
+UB,UB,Ultra U.S Treasury Bond ,CBOT,,7394.6,7394.6,7394.6,6430.09,Futures,Interest Rate,100000,,$31.25 ,0.03125,Deliverable,"Sunday - Friday 6:00 p.m. - 5:00 p.m, Monday - Thursday, 5:00 p.m. - 6:00 p.m",Databento,GLOBEX
+ZC,ZC,Corn,CBOT,,2316.45,2316.45,2316.45,2014.3,Futures,Agriculture,5000, bushels,$12.50 ,0.0025,Deliverable,"Sunday - Friday, 8:00 p.m. - 8:45 a.m.  And Monday - Friday, 9:30 a.m. - 2:20 p.m.",Databento,GLOBEX
+ZL,ZL,Soybean Oil ,CBOT,,3080.97,3080.97,3080.97,2679.11,Futures,Agriculture,60000,pounds,$6.00 ,0.0001,Deliverable,"Sunday - Friday, 8:00 p.m. - 8:45 a.m.  And Monday - Friday, 9:30 a.m. - 2:20 p.m.",Databento,GLOBEX
+ZM,ZM,Soybean Meal ,CBOT,,3694.61,3694.61,3694.61,3212.71,Futures,Agriculture,100,short tons,$10.00 ,0.1,Deliverable,"Sunday - Friday, 8:00 p.m. - 8:45 a.m.  And Monday - Friday, 9:30 a.m. - 2:20 p.m.",Databento,GLOBEX
+ZN,ZN,10-Year-T-Note ,CBOT,,2515.32,2515.32,2515.32,2187.13,Futures,Interest Rate,100000,,$16 ,0.015625,Deliverable,Sunday - Friday 6:00 p.m. - 5:00 p.m.,Databento,GLOBEX
+ZR,ZR,Rough Rice ,CBOT,,4657.72,4657.72,4657.72,4050.19,Futures,Agriculture,2000,hundredweight (cwt),$10.00 ,0.005,Deliverable,"Sunday - Thursday, 8:00 p.m. - 10:00 p.m. 
+Pre-Open Sunday: 5:00 p.m. - 8:00 p.m. ",Databento,GLOBEX
+ZS,YK,Soybean Mini ,CBOT,,4198.64,4198.64,4198.64,3650.99,Futures,Agriculture,1000,bushels,$1.25 ,0.00125,Deliverable,"Sunday - Friday, 8:00 p.m. - 8:45 a.m.  And Monday - Friday, 9:30 a.m. - 2:20 p.m.",Databento,GLOBEX
+ZW,YW,Chicago Soft Red Winter Wheat  Mini ,CBOT,,3159.8,3159.8,3159.8,2747.65,Futures,Agriculture,5000,bushels,$12.50 ,0.0025,Deliverable,"Sunday - Friday, 8:00 p.m. - 8:45 a.m.  And Monday - Friday, 9:30 a.m. - 2:20 p.m.",Databento,GLOBEX

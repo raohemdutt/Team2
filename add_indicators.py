@@ -34,7 +34,7 @@ indicators_df = pd.concat(futures_dict.values(), ignore_index=True)
 indicators_df = indicators_df.sort_values(by = ['Time','Symbol'], ascending = [False,True]) #our SQL database has the earliest dates on top
 indicators_df.to_csv("indicators_and_data.csv", index=False)
 
-metadf = pd.read_csv("metadata.csv")
+metadf = pd.read_csv("metadata2.csv")
 metadf = metadf.rename(columns={'Databento Symbol' : 'Symbol'})
 metadf['Symbol'] = metadf['Symbol'] + '.c.0'
 
@@ -60,3 +60,12 @@ almost_asset['Asset'] = almost_asset['Asset'].str.replace('.c.0', '', regex=Fals
 almost_asset = almost_asset.sort_values(by = ['Asset','Date'], ascending= [True, True])
 almost_asset.head(5)
 almost_asset.to_csv('asset_data.csv', index=False)
+
+
+# Part 3
+futures = pd.read_csv('metadata2.csv')
+futures = futures.copy()
+futures = futures[['Databento Symbol','Tick Size','Contract Size','Intraday Initial Margin']] # Can change margin to Intraday/Overnight Initial/Maintanence
+futures['Tick Value'] = futures['Tick Size'] * futures['Contract Size']
+futures.rename(columns={'Databento Symbol': 'Ticker', 'Tick Size':'TickSize', 'Contract Size': 'ContractSize', 'Intraday Initial Margin' : 'MarginRequirement', 'Tick Value': 'TickValue'})
+futures.to_csv('futures_specifications.csv', index = False)
