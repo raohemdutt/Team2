@@ -46,3 +46,16 @@ final = addmetadata(indicators_df)
 market_volume = final[['Time','Symbol','Volume', 'VAS','Sector']]
 market_volume = market_volume.rename(columns = {'Time':'Date','Volume':'MarketVolume'})
 market_volume.to_csv("market_volume.csv", index = False)
+
+#CSV 2
+almost_asset = final
+almost_asset = almost_asset.copy()
+almost_asset['Lookback'] = 20
+almost_asset = almost_asset[['Time','Symbol','Open','High','Low','Close','Volume','Lookback']]
+almost_asset['SectorMarketVolume'] = 0
+almost_asset = almost_asset.rename(columns = {'Time': 'Date', 'Symbol':'Asset'})
+almost_asset['Date'] = pd.to_datetime(almost_asset['Date']).dt.strftime('%Y-%m-%d')
+almost_asset['Asset'] = almost_asset['Asset'].str.replace('.c.0', '', regex=False)
+almost_asset = almost_asset.sort_values(by = ['Asset','Date'], ascending= [True, True])
+almost_asset.head(5)
+almost_asset.to_csv('asset_data.csv')
