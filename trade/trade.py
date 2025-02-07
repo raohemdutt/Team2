@@ -3,17 +3,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 # Carver's risk multipliers
 from multipliers import portfolio_risk_aggregator
-
+import datetime
 
 # === Trading Logic Implementation === #
 # This script assumes preprocessed data (Open, High, Low, Close, Volume) is provided from a CSV.
 # It implements dynamic reward-to-risk, stop-loss adaptation, and volume-based position sizing.
 
-def load_futures_specifications(csv_file="futures_specifications.csv"):
+def load_futures_specifications(csv_file="trade/futures_specifications.csv"):
     """
     Loads futures contract specifications from a CSV file.
     """
-    df = pd.read_csv(csv_file, parse_dates=["ExpiryDate"])  # Read CSV
+    df = pd.read_csv(csv_file)  # Read CSV
     futures_dict = {}
 
     for _, row in df.iterrows():
@@ -22,7 +22,8 @@ def load_futures_specifications(csv_file="futures_specifications.csv"):
             "tick_value": row["TickValue"],
             "contract_size": row["ContractSize"],
             "margin_requirement": row["MarginRequirement"],
-            "expiry_date": row["ExpiryDate"]
+            # "expiry_date": row["ExpiryDate"]
+            "rollover_months": [m.strip() for m in row["RolloverMonths"].split(',')]  # Store months as a list
         }
 
     return futures_dict
@@ -97,6 +98,41 @@ def identify_breakouts(df):
         print(asset_df[['Close', 'ConsolidationHigh', 'ConsolidationLow', 'VAS']].dropna().head())
 
     return pd.concat(all_data, ignore_index=True)
+
+
+# === Function to Integrate Sector Volume === #
+# def integrate_sector_volume(asset_df, sector_df):
+#     """
+#     Merges sector volume data into asset data by matching sector and date.
+#     """
+#     asset_df = asset_df.merge(sector_df, on=["Date", "Sector"], how="left")
+#     asset_df.rename(columns={"Volume": "SectorVolume"}, inplace=True)  # Rename after merge
+
+#     return asset_df
+
+
+# === Function to Integrate Yearly Sector Volume === #
+def integrate_sector_volume(asset_df, sector_volume_df):
+    """
+    Merges yearly sector volume data into asset data by matching sector and year.
+    Updates asset_data.csv immediately after merging.
+    """
+    asset_df["Date"] = pd.to_datetime(asset_df["Date"])
+    asset_df["Year"] = asset_df["Date"].dt.year
+    
+    # Merge sector volume data
+    asset_df = asset_df.merge(sector_volume_df, on=["Sector", "Year"], how="left")
+    asset_df.rename(columns={"YearlyAverageVolume": "SectorMarketVolumes"}, inplace=True)
+    
+    # Ensure the column exists
+    if "SectorMarketVolumes" not in asset_df.columns:
+        asset_df["SectorMarketVolumes"] = 0  # Default to zero if missing
+    
+    # Save updated asset data immediately
+    asset_df.to_csv("trade/asset_data.csv", index=False)
+    print("Updated asset_data.csv with sector volume.")
+    return asset_df
+
 
 # === Function to Integrate Volume Index Comparison === #
 def integrate_volume_index(df):
@@ -189,16 +225,53 @@ def calculate_risk_matrices(df):
     return covariance_matrix, jump_covariance_matrix
 
 
+# def handle_futures_rollover(df):
+#     """
+#     Rolls over expiring futures contracts into the next available month.
+#     """
+#     for asset in FUTURES_SPECIFICATIONS:
+#         expiry_date = FUTURES_SPECIFICATIONS[asset].get('expiry_date')
+
+#         if expiry_date and pd.Timestamp.today() >= expiry_date:
+#             print(f"Rollover: Closing {asset} and rolling into next contract month.")
+#             df.loc[df['Asset'] == asset, 'Rollover'] = True  # Flag trades for rollover
+    
+#     return df
+
 def handle_futures_rollover(df):
     """
-    Rolls over expiring futures contracts into the next available month.
+    Rolls over futures contracts based on available months instead of fixed expiry dates.
+    The rollover date is determined based on the date of the trade or data being considered.
     """
-    for asset in FUTURES_SPECIFICATIONS:
-        expiry_date = FUTURES_SPECIFICATIONS[asset].get('expiry_date')
+    for asset, specs in FUTURES_SPECIFICATIONS.items():
+        rollover_months = specs['rollover_months']
+        print(f"Processing asset: {asset}, Rollover Months: {rollover_months}")  # Debug asset and rollover months
 
-        if expiry_date and pd.Timestamp.today() >= expiry_date:
-            print(f"Rollover: Closing {asset} and rolling into next contract month.")
-            df.loc[df['Asset'] == asset, 'Rollover'] = True  # Flag trades for rollover
+        for index, row in df[df['Asset'] == asset].iterrows():
+            trade_date = pd.Timestamp(row['Date'])
+            trade_month = trade_date.strftime('%b')
+            print(f"Trade Date: {trade_date.date()}, Trade Month: {trade_month}")  # Debug trade date
+
+            # Find the next available month for rollover
+            next_rollover_month = None
+            for month in rollover_months:
+                if datetime.datetime.strptime(month, '%b').month > trade_date.month:
+                    next_rollover_month = month
+                    print(f"Next Rollover Month Found: {next_rollover_month}")  # Debug next rollover month
+
+                    break
+            
+            # If no future month is found, roll over to the earliest available month
+            if not next_rollover_month:
+                next_rollover_month = rollover_months[0]  # Default to the first month in list
+                print(f"No future month found. Rolling over to first available month: {next_rollover_month}")
+
+            # print(f"Rolling over {asset} on {trade_date.date()} to next contract month: {next_rollover_month}")
+            df.at[index, 'Rollover'] = True  # Flag trades for rollover
+            print(f"Rollover flag set for index {index}")  # Debug index of updated row
+    
+    print("Final DataFrame:\n", df.head())  # Print first few rows of updated DataFrame
+
     
     return df
 
@@ -242,8 +315,10 @@ def calculate_futures_pnl(trades):
 
             # Compute P&L using futures-specific calculations
             price_difference = trade['ExitPrice'] - trade['EntryPrice']
+            print("price difference",price_difference)
             tick_movement = price_difference / tick_size  # Number of ticks moved
-            gross_pnl = tick_movement * tick_value * contract_size * trade['Contracts']
+            print("tick movement", tick_movement)
+            gross_pnl = tick_movement * tick_value * trade['Contracts']
 
             # Apply transaction costs (per contract per trade)
             # total_transaction_cost = trade['Contracts'] * spec['margin_requirement'] * 0.0001  # Example: 0.01% cost
@@ -264,9 +339,10 @@ def calculate_futures_pnl(trades):
     return trades
 
 # === Function to Calculate Dynamic Position Sizing === #
-def calculate_position_size(df, capital=10000000, risk_per_trade=0.01, atr_multiplier=1.5, max_leverage=3.0, max_correlation_risk=0.2, max_portfolio_volatility=0.15, max_jump_risk=0.1):
+def calculate_position_size(df, capital=500000, risk_per_trade=0.01, atr_multiplier=1.5, max_leverage=2.0, 
+                            max_correlation_risk=0.2, max_portfolio_volatility=0.15, max_jump_risk=0.1):
     """
-    Determines position size per asset using both:
+    Determines position size per asset using:
     1. ATR-based volatility scaling (reduces size in high-volatility markets)
     2. VAS-based volume scaling (prioritizes high-confidence setups)
 
@@ -275,7 +351,8 @@ def calculate_position_size(df, capital=10000000, risk_per_trade=0.01, atr_multi
     """
     assets = df["Asset"].unique()
     all_data = []
-    positions = []
+    positions_list = []  # Stores per-asset positions
+    total_margin_used = 0
 
     for asset in assets:
         asset_df = df[df["Asset"] == asset].copy()
@@ -285,7 +362,7 @@ def calculate_position_size(df, capital=10000000, risk_per_trade=0.01, atr_multi
         asset_df['ATR_Adjusted_Size'] = risk_amount / (asset_df['ATR'] * atr_multiplier)
 
         # Apply volume-based scaling (VAS ensures high-confidence setups get more allocation)
-        asset_df['PositionSize'] = asset_df['ATR_Adjusted_Size'] * np.minimum(asset_df['VAS'], 3)
+        asset_df['PositionSize'] = asset_df['ATR_Adjusted_Size'] * np.minimum(asset_df['VAS'].fillna(0), 3)
 
         # FUTURES-SPECIFIC POSITION SIZING
         if asset in FUTURES_SPECIFICATIONS:
@@ -294,60 +371,67 @@ def calculate_position_size(df, capital=10000000, risk_per_trade=0.01, atr_multi
             tick_value = contract_spec['tick_value']
             margin_requirement = contract_spec['margin_requirement']
 
-            print(f"Debug - PositionSize for {asset}:")
-            print(asset_df[['Date', 'Asset', 'PositionSize']].dropna().head())  # Show first few rows
             asset_df['PositionSize'] = asset_df['PositionSize'].fillna(0)
-
-            print(f"Debug - Total Capital Used for {asset}: {asset_df['PositionSize'].sum()} / {capital}")
-
-            # # Ensure capital is used efficiently without overwriting ATR/VAS-based PositionSize
-            # total_allocated = df.groupby('Asset')['PositionSize'].sum()
-            # df['CapitalShare'] = df['PositionSize'] / total_allocated  
-            # df['PositionSize'] = capital * df['CapitalShare']
-
-            # # Debug normalized PositionSize
-            # print("Debug - Normalized PositionSize Distribution:", df.groupby('Asset')['PositionSize'].sum())
 
             # Compute Contracts
             contract_value = contract_size * tick_value
-            print(contract_value)
             asset_df['Contracts'] = asset_df['PositionSize'] / contract_value
 
-            # Apply margin constraint and rounding in one step
-            max_contracts = capital / margin_requirement
-            print(max_contracts)
-            asset_df['Contracts'] = np.minimum(np.ceil(asset_df['Contracts']), max_contracts).astype(int)
+            # # # Apply margin constraint and rounding
+            # max_contracts = capital / margin_requirement
+            # asset_df['Contracts'] = np.minimum(np.ceil(asset_df['Contracts']), max_contracts).astype(int)
+            # Ensure total margin stays within allowed exposure
+            # Ensure contracts are rounded up to maximize profit since we already have position protections (no partial contracts)
+            asset_df['Contracts'] = np.ceil(asset_df['Contracts']).astype(int)
 
-            # Debugging print
-            print(f"Debug - Assigned Contracts for {asset}: {asset_df['Contracts'].unique()}")
+            for i, row in asset_df.iterrows():
+                position_margin = row['Contracts'] * margin_requirement
+                if total_margin_used + position_margin > max_leverage * capital:
+                    # Scale down contracts if margin exceeds limit
+                    asset_df.at[i, 'Contracts'] = max(1, (max_leverage * capital - total_margin_used) // margin_requirement)
+                total_margin_used += asset_df.at[i, 'Contracts'] * margin_requirement
 
         # Store positions for risk aggregation
-        positions.append(asset_df['Contracts'].values)
-
+        positions_list.append(asset_df['Contracts'].values)
         all_data.append(asset_df)
 
     df = pd.concat(all_data, ignore_index=True)
     covariance_matrix, jump_covariance_matrix = calculate_risk_matrices(df)
 
-    # Convert positions to NumPy array
-    positions = np.array(positions)
+    print("Debug - Positions list lengths:", [len(pos) for pos in positions_list])
+
+    # Ensure positions have the same length as the DataFrame
+    max_length = len(df)
+
+    # Handle varying lengths by padding with the last valid value
+    positions = np.array([
+        np.pad(pos, (0, max_length - len(pos)), constant_values=pos[-1] if len(pos) > 0 else 0)[:max_length]
+        for pos in positions_list
+    ])
+
+    print(f"Debug - Positions shape: {positions.shape}, Expected DF Length: {len(df)}")
 
     # Compute positions weighted per asset
     unique_assets = df["Asset"].unique()
-    positions_weighted = np.zeros(len(unique_assets))
+    # positions_weighted = np.zeros(len(unique_assets))
+    # Compute positions weighted per asset
+    positions_weighted = np.mean(positions, axis=1) / capital
+
+    # Ensure positions_weighted is correctly shaped
+    positions_weighted = np.array(positions_weighted).flatten()
+
 
     for i, asset in enumerate(unique_assets):
-        # Extract positions for the current asset across all dates
-        asset_positions = positions[:, i]  
+        asset_positions = positions[i, :]  # Extract positions for this asset
         mean_position = np.mean(asset_positions)
         positions_weighted[i] = mean_position / capital
 
-    positions_weighted = np.array(positions_weighted)
+    # positions_weighted = np.array(positions_weighted)
 
     # Apply Carver's Risk Multipliers
     final_positions = portfolio_risk_aggregator(
         positions=positions,
-        positions_weighted=np.array(positions_weighted).flatten(),
+        positions_weighted=positions_weighted.flatten(),
         covariance_matrix=covariance_matrix.to_numpy(),
         jump_covariance_matrix=jump_covariance_matrix.to_numpy(),
         maximum_portfolio_leverage=max_leverage,
@@ -357,9 +441,23 @@ def calculate_position_size(df, capital=10000000, risk_per_trade=0.01, atr_multi
         date=pd.Timestamp.today()
     )
 
+    print(f"Debug - Final Positions shape: {final_positions.shape}, Expected DF Length: {len(df)}")
+
+    # Ensure final_positions matches `df`
+    if final_positions.shape[1] == len(df):  # If final_positions is (Assets, Time Steps)
+        final_positions = final_positions.mean(axis=0)  # Take mean across assets
+
+    print(f"Debug - Final Positions shape AFTER FIX: {final_positions.shape}, Expected: ({len(df)},)")
+
+    # # Ensure final_positions is reshaped correctly before assignment
+    # if final_positions.flatten().shape[0] != len(df):
+    #     raise ValueError(f"Mismatch: final_positions length ({final_positions.flatten().shape[0]}) != df length ({len(df)})")
+
     # Update df with adjusted position sizes
-    df['PositionSize'] = final_positions.flatten()
-    df['Contracts'] = final_positions.flatten()
+    # df['PositionSize'] = final_positions.flatten()
+    # df['Contracts'] = final_positions.flatten()
+    df['PositionSize'] = final_positions
+    df['Contracts'] = final_positions
 
     return df
 
@@ -461,10 +559,14 @@ def main():
     - Simulates trades and generates output.
     - Plots trade results for visualization.
     """
-    df = pd.read_csv('asset_data.csv')  # Assume preprocessed CSV
-    # market_df = pd.read_csv('market_volume.csv')  # Broader market volume benchmark
-    
-    print(df.head())  # Debugging step: Check if data is correctly loaded
+    df = pd.read_csv('trade/asset_data.csv')  # Assume preprocessed CSV
+
+    # sector_volume_df = pd.read_csv('trade/yearly_sector_volume_2010_2025.csv')  # Load yearly sector volume data
+    # df = integrate_sector_volume(df, sector_volume_df)  # Match and apply sector volume
+    # df.to_csv("trade/updated_asset_data_with_sector_volume.csv", index=False)
+
+
+    # print(df.head())  # Debugging step: Check if data is correctly loaded
     
     df = calculate_indicators(df)
     df = identify_breakouts(df)
@@ -477,7 +579,7 @@ def main():
 
     trades = simulate_trades(df)
     print(trades)
-    trades.to_csv("trades.csv", index=False)
+    trades.to_csv("trade/trades.csv", index=False)
 
 if __name__ == '__main__':
     main()
