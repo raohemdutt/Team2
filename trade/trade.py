@@ -78,6 +78,10 @@ def identify_breakouts(df):
     
     for asset in assets:
         asset_df = df[df["Asset"] == asset].copy()
+                # Ensure VIR exists in the filtered dataframe
+        if 'VIR' not in asset_df.columns:
+            raise KeyError(f"VIR column is missing in asset_df for asset {asset}. Check integration step.")
+
         # Consolidation Detection
         asset_df['Consolidation'] = asset_df['DRI'].rolling(window=3, min_periods=1).apply(lambda x: all(x < 0.8), raw=True).astype(bool)
 
@@ -86,8 +90,17 @@ def identify_breakouts(df):
         asset_df['ConsolidationLow'] = asset_df['Low'].where(asset_df['Consolidation']).ffill()
 
         # Breakout Signals
-        asset_df['BullishBreakout'] = (asset_df['Close'] > asset_df['ConsolidationHigh']) & (asset_df['VAS'] > 1.5)
-        asset_df['BearishBreakout'] = (asset_df['Close'] < asset_df['ConsolidationLow']) & (asset_df['VAS'] > 1.5)
+        asset_df['BullishBreakout'] = (
+            (asset_df['Close'] > asset_df['ConsolidationHigh']) &
+            (asset_df['VAS'] > 1.5) & 
+            (asset_df['VIR'] > 1.2)  # Ensuring stock-specific volume anomaly
+        )
+
+        asset_df['BearishBreakout'] = (
+            (asset_df['Close'] < asset_df['ConsolidationLow']) &
+            (asset_df['VAS'] > 1.5) & 
+            (asset_df['VIR'] > 1.2)  # Ensuring stock-specific volume anomaly
+        )
         
         all_data.append(asset_df)
 
@@ -216,7 +229,6 @@ def handle_futures_rollover(df):
 
             df.at[index, 'Rollover'] = True  # Flag trades for rollover
             # print(f"Rollover flag set for index {index}")  # Debug index of updated row
-    
     print("Final DataFrame:\n", df.head())  # Print first few rows of updated DataFrame
 
     
@@ -494,8 +506,8 @@ def main():
     # print(df.head())  # Debugging step: Check if data is correctly loaded
     
     df = calculate_indicators(df)
-    df = identify_breakouts(df)
     df = integrate_volume_index(df)
+    df = identify_breakouts(df)
     df = adjust_stop_loss_target(df)
     df = calculate_position_size(df)
 
