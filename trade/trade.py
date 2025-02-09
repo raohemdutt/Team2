@@ -48,14 +48,16 @@ def calculate_indicators(df):
        
        
                 # Apply rolling window dynamically using Lookback column
+        # asset_df['ATR'] = asset_df.apply(lambda row: 
+        #                                  asset_df.loc[:row.name, 'Range'].rolling(window=row['Lookback']).mean().iloc[-1], axis=1)
         asset_df['ATR'] = asset_df.apply(lambda row: 
-                                         asset_df.loc[:row.name, 'Range'].rolling(window=row['Lookback']).mean().iloc[-1], axis=1)
+            asset_df.loc[:row.name, 'Range'].rolling(window=row['Lookback']).mean().shift(1).iloc[-1], axis=1)
 
         asset_df['DRI'] = asset_df.apply(lambda row: 
-                                         row['Range'] / asset_df.loc[:row.name, 'Range'].rolling(window=row['Lookback']).mean().iloc[-1], axis=1)
+                                         row['Range'] / asset_df.loc[:row.name, 'Range'].rolling(window=row['Lookback']).mean().shift(1).iloc[-1], axis=1)
 
         asset_df['AvgVolume'] = asset_df.apply(lambda row: 
-                                               asset_df.loc[:row.name, 'Volume'].rolling(window=row['Lookback']).mean().iloc[-1], axis=1)
+                                               asset_df.loc[:row.name, 'Volume'].rolling(window=row['Lookback']).mean().shift(1).iloc[-1], axis=1)
 
         asset_df['VAS'] = asset_df['Volume'] / asset_df['AvgVolume']
         
@@ -165,7 +167,21 @@ def adjust_stop_loss_target(df):
                                         asset_df['Close'] - (0.3 * asset_df['ATR_Stop_Adjust']),
                                         asset_df['Close'] + (0.3 * asset_df['ATR_Stop_Adjust']))
 
-        asset_df['RewardToRisk'] = (asset_df['ATR'] / (asset_df['ConsolidationHigh'] - asset_df['ConsolidationLow'])).clip(1.5, 3.0)
+        # asset_df['RewardToRisk'] = (asset_df['ATR'] / (asset_df['ConsolidationHigh'] - asset_df['ConsolidationLow'])).clip(1.5, 3.0)
+        # Define true risk level based on stop-loss distance
+        # Define true risk based on stop-loss distance
+        true_risk = np.abs(asset_df['Close'] - asset_df['StopLoss'])
+
+        # Estimate realistic reward using past breakouts
+        historical_max_move = asset_df['High'].rolling(window=20).max() - asset_df['Close']
+        historical_min_move = asset_df['Close'] - asset_df['Low'].rolling(window=20).min()
+
+        # Use past breakout volatility as a proxy for potential reward
+        estimated_reward = np.where(asset_df['BullishBreakout'], historical_max_move, historical_min_move)
+
+        # Calculate Reward-to-Risk (RR) dynamically
+        asset_df['RewardToRisk'] = (estimated_reward / true_risk).clip(1.5, 3.0)
+
         asset_df['Target'] = np.where(asset_df['BullishBreakout'],
                                       asset_df['Close'] + asset_df['RewardToRisk'] * (asset_df['Close'] - asset_df['StopLoss']),
                                       asset_df['Close'] - asset_df['RewardToRisk'] * (asset_df['StopLoss'] - asset_df['Close']))
@@ -273,7 +289,11 @@ def calculate_futures_pnl(trades):
             tick_size, tick_value, contract_size = spec['tick_size'], spec['tick_value'], spec['contract_size']
 
             # Compute P&L using futures-specific calculations
-            price_difference = trade['ExitPrice'] - trade['EntryPrice']
+            if trade['Direction'] == 'Bearish':
+                price_difference = trade['EntryPrice'] - trade['ExitPrice']
+            elif trade['Direction'] == 'Bullish':
+                price_difference = trade['ExitPrice'] - trade['EntryPrice']
+
             # print("price difference",price_difference)
             tick_movement = price_difference / tick_size  # Number of ticks moved
             # print("tick movement", tick_movement)
@@ -289,6 +309,7 @@ def calculate_futures_pnl(trades):
             trades.at[i, 'GrossPnL'] = gross_pnl
             Grss_pnl+=gross_pnl
             trades.at[i, 'TransactionCost'] = total_transaction_cost
+
             trades.at[i, 'NetPnL'] = net_pnl
             Nt_pnl+=net_pnl
     print("GROSS PNL",Grss_pnl)
@@ -437,7 +458,7 @@ def simulate_trades(df, exit_days=5, transaction_cost_pct=0.001, slippage_pct=0.
                 rr_ratio = reward / risk if risk > 0 else 0  # Avoid division by zero
 
                 # Skip trades with poor RR ratio
-                if rr_ratio < 1.5:
+                if rr_ratio < 2.0:
                     # print(f"Skipping trade for {asset} on {entry_date} (RR: {rr_ratio:.2f})")
                     continue  # Skip this trade
 
@@ -467,7 +488,6 @@ def simulate_trades(df, exit_days=5, transaction_cost_pct=0.001, slippage_pct=0.
                     # print(f"Bullish Breakouts: {df['BullishBreakout'].sum()}")
                     # print(f"Bearish Breakouts: {df['BearishBreakout'].sum()}")
 
-                # Apply slippage to exit price
                 exit_price = exit_price * (1 - slippage_pct) if row['BullishBreakout'] else exit_price * (1 + slippage_pct)
 
                 trades.append({
@@ -488,7 +508,6 @@ def simulate_trades(df, exit_days=5, transaction_cost_pct=0.001, slippage_pct=0.
 
     if not trades_df.empty:
         trades_df = calculate_futures_pnl(trades_df)  # Apply PnL calculation only if trades exist
-
 
     return trades_df
 
