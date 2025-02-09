@@ -428,7 +428,7 @@ def calculate_position_size(df, capital=500000, risk_per_trade=0.01, atr_multipl
     return df
 
 # === Function to Simulate Trades === #
-def simulate_trades(df, exit_days=5, transaction_cost_pct=0.001, slippage_pct=0.0005):
+def simulate_trades(df, exit_days=5, transaction_cost_pct=0.001, slippage_pct=0.0005, max_trades_per_day=10):
     """
     Execute trade simulation per asset.
     - Identifies trade entries based on breakout conditions.
@@ -436,6 +436,7 @@ def simulate_trades(df, exit_days=5, transaction_cost_pct=0.001, slippage_pct=0.
     - Implements a time-based exit if the price does not hit target or stop-loss.
     """
     trades = []
+    trade_counts = {}  # Track the number of trades per day
 
     df['ExitDate'] = None  # Track when the trade exits
 
@@ -444,7 +445,16 @@ def simulate_trades(df, exit_days=5, transaction_cost_pct=0.001, slippage_pct=0.
 
         for i in range(len(asset_df)):
             row = asset_df.iloc[i]
-            
+            trade_date = row['Date']
+
+            # Initialize trade count for the date if not already tracked
+            if trade_date not in trade_counts:
+                trade_counts[trade_date] = 0
+
+            # Skip if the number of trades for this day exceeds the limit
+            if trade_counts[trade_date] >= max_trades_per_day:
+                continue  # Move to the next iteration
+
             if row['BullishBreakout'] or row['BearishBreakout']:
                 entry_price = row['Close']
                 stop_loss = row['StopLoss']
@@ -502,6 +512,7 @@ def simulate_trades(df, exit_days=5, transaction_cost_pct=0.001, slippage_pct=0.
                     'PositionSize': position_size,
                     'Contracts': row.get('Contracts', 1)  # Ensure 'Contracts' is included, default to 1 if missing
                 })
+                trade_counts[trade_date] += 1
 
     # Convert trades list to DataFrame before PnL calculations
     trades_df = pd.DataFrame(trades)
