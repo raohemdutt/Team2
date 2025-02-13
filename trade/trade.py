@@ -319,7 +319,7 @@ def calculate_futures_pnl(trades):
 
 # === Function to Calculate Dynamic Position Sizing === #
 def calculate_position_size(df, capital=500000, risk_per_trade=0.01, atr_multiplier=1.5, max_leverage=2.0, 
-                            max_correlation_risk=0.2, max_portfolio_volatility=0.15, max_jump_risk=0.1):
+                            max_correlation_risk=0.2, max_portfolio_volatility=0.15, max_jump_risk=0.1, max_sector_exposure=0.2):
     """
     Determines position size per asset using:
     1. ATR-based volatility scaling (reduces size in high-volatility markets)
@@ -353,7 +353,9 @@ def calculate_position_size(df, capital=500000, risk_per_trade=0.01, atr_multipl
             asset_df['PositionSize'] = asset_df['PositionSize'].fillna(0)
 
             # Compute Contracts
-            contract_value = contract_size * tick_value
+            # contract_value = contract_size * tick_value
+            contract_value = contract_size * asset_df['Close']  # Use price level instead of tick value
+
             asset_df['Contracts'] = asset_df['PositionSize'] / contract_value
 
             # Ensure contracts are rounded up to maximize profit since we already have position protections (no partial contracts)
@@ -366,11 +368,26 @@ def calculate_position_size(df, capital=500000, risk_per_trade=0.01, atr_multipl
                     asset_df.at[i, 'Contracts'] = max(1, (max_leverage * capital - total_margin_used) // margin_requirement)
                 total_margin_used += asset_df.at[i, 'Contracts'] * margin_requirement
 
+            #  Apply Sector Balancing to Contracts
+            sector_allocations = asset_df.groupby("Sector")["Contracts"].sum()
+            for sector in sector_allocations.index:
+                sector_weight = sector_allocations[sector] / capital  
+
+                if sector_weight > max_sector_exposure:
+                    reduction_factor = 1 - ((sector_weight - max_sector_exposure) / sector_weight)
+                    reduction_factor = max(reduction_factor, 0.5)  # Prevent over-adjustment
+
+                    print(f"Sector {sector} overweight! Applying reduction factor: {reduction_factor:.2f}")
+                    asset_df.loc[asset_df["Sector"] == sector, "Contracts"] = np.floor(asset_df.loc[asset_df["Sector"] == sector, "Contracts"] * reduction_factor).astype(int)
+
+
+
         # Store positions for risk aggregation
         positions_list.append(asset_df['Contracts'].values)
         all_data.append(asset_df)
 
     df = pd.concat(all_data, ignore_index=True)
+
     covariance_matrix, jump_covariance_matrix = calculate_risk_matrices(df)
 
     # print("Debug - Positions list lengths:", [len(pos) for pos in positions_list])
@@ -456,11 +473,18 @@ def simulate_trades(df, exit_days=5, transaction_cost_pct=0.001, slippage_pct=0.
                 continue  # Move to the next iteration
 
             if row['BullishBreakout'] or row['BearishBreakout']:
-                entry_price = row['Close']
+                # entry_price = row['Close']
+                if i + 1 < len(asset_df):
+                    next_row = asset_df.iloc[i + 1]
+                    entry_price = next_row['Open']  # Use next day's open
+                    entry_date = next_row['Date']  # Entry happens next day
+                else:
+                    entry_price = row['Close']  # ✅ Last row: use current close
+                    entry_date = row['Date']  # Entry on the same day (final trade)
+
                 stop_loss = row['StopLoss']
                 target = row['Target']
                 position_size = row['PositionSize']
-                entry_date = row['Date']
 
                 # Compute Risk-Reward Ratio
                 risk = abs(entry_price - stop_loss)
@@ -532,6 +556,9 @@ def main():
     - Plots trade results for visualization.
     """
     df = pd.read_csv('trade/asset_data.csv')  # Assume preprocessed CSV
+    # Convert Date column to datetime and filter for 2024-2025 data
+    # df["Date"] = pd.to_datetime(df["Date"])
+    # df = df[df["Date"].dt.year >= 2023]
 
     # print(df.head())  # Debugging step: Check if data is correctly loaded
     
